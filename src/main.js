@@ -14,10 +14,35 @@ class mapTile {
     }
 }
 
-class mapService {
+class customMap {
+    constructor(width, height, tilesetSource) {
+        this.map = new Map();
+        this.tilesetSource = tilesetSource;
+        this.width = width;
+        this.height = height;
+        this.startX = -10;
+        this.startY = -10;
+    }
+    addTileToMap(x, y, tile) {
+        this.map[x + ":" + y] = tile;
+    }
+    getMap() {
+        return {
+            "tileset" : this.tilesetSource,
+            "map" : this.map
+        }
+    }
+    saveMap(name) {
+        this.name = name;
+        localStorage.currentMap = JSON.stringify(this.getMap());
+    }
+}
+
+class mapRenderService {
     constructor(context2D, imgMapTileset) {
         this.imgMapTileset = imgMapTileset;
         this.ctx2d = context2D;
+        this.tileList = this.extractTilesFromTileset();
     }
 
     drawTile(x,y,tileName) {
@@ -72,6 +97,10 @@ class mapService {
 
         return tileList;
     }
+
+    getTileByName(tileName) {
+        return this.tileList.find((tile) => tile.name==tileName);
+    }
 }
 
 const imgTiles = new Image();
@@ -89,10 +118,12 @@ window.selectTile = (img) => {
 const start = () => {
     if(imgTiles.complete && imgGrid.complete) {
 
+        window.currentMap = new customMap(20, 20, imgTiles.src); 
+
         const canvas = document.querySelector('#canvasMap');
         const ctx = canvas.getContext("2d");
         
-        const serviceGrid = new mapService(ctx, imgGrid);
+        const serviceGrid = new mapRenderService(ctx, imgGrid);
 
         // init grid
         let cptX, cptY = 0;
@@ -110,14 +141,14 @@ const start = () => {
                 serviceGrid.drawTile(newPos.x,newPos.y,"TILE:1:0");
             }
             else {
-                serviceTiles.drawTile(newPos.x,newPos.y,window.selectedTileName);
+                serviceTiles.drawTile(newPos.x, newPos.y, window.selectedTileName);
+                window.currentMap.addTileToMap(newPos.x, newPos.y, serviceTiles.getTileByName(window.selectedTileName));
             }
             canvas.lastPos = newPos;
         });
 
         // get tiles and init selection controle
-        const serviceTiles = new mapService(ctx, imgTiles);
-        const tileList = serviceTiles.extractTilesFromTileset();
+        const serviceTiles = new mapRenderService(ctx, imgTiles);
 
         // update tile list for selection 
         const divTilesList = document.querySelector('#divTilesList');
@@ -125,7 +156,7 @@ const start = () => {
         let cptCol = 0;
         html += "<table>";
         html += "<tr>";
-        tileList.forEach((tile) => {
+        serviceTiles.tileList.forEach((tile) => {
             html += "<td>";
             html += "<img src='" + tile.url + "' onclick='selectTile(this)' data-name='" + tile.name + "'></img>";
             html += "</td>";

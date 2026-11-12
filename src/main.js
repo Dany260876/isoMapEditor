@@ -1,180 +1,119 @@
+import CustomMap from './class/CustomMap.js'
+import MapViewport from './class/MapViewport.js'
+import TilesImageConfig from './class/TilesImageConfig.js'
+import TilesetService from './service/TilesetService.js';
+import MapRenderService from './service/MapRenderService.js'
+
 import './style.css';
 import sheet from './assets/sheet.png';
 import grid from './assets/grid.png';
 
-const TILE_WIDTH = 128;
-const TILE_HEIGHT = 64;
-
-class mapTile {
-    constructor(type, tilePosX, tilePosY, url) {
-        this.name = type + ":" + tilePosX + ":" + tilePosY;
-        this.posX = tilePosX;
-        this.posY = tilePosY;
-        this.url = url;
-    }
-}
-
-class customMap {
-    constructor(width, height, tilesetSource) {
-        this.map = new Map();
-        this.tilesetSource = tilesetSource;
-        this.width = width;
-        this.height = height;
-        this.startX = -10;
-        this.startY = -10;
-    }
-    addTileToMap(x, y, tile) {
-        this.map[x + ":" + y] = tile;
-    }
-    getMap() {
-        return {
-            "tileset" : this.tilesetSource,
-            "map" : this.map
-        }
-    }
-    saveMap(name) {
-        this.name = name;
-        localStorage.currentMap = JSON.stringify(this.getMap());
-    }
-}
-
-class mapRenderService {
-    constructor(context2D, imgMapTileset) {
-        this.imgMapTileset = imgMapTileset;
-        this.ctx2d = context2D;
-        this.tileList = this.extractTilesFromTileset();
-    }
-
-    drawTile(x,y,tileName) {
-        const tabName = tileName.split(':');
-        const tileX = tabName[1]*TILE_WIDTH;
-        const tileY = tabName[2]*TILE_HEIGHT;
-
-        const posX = (x-y)*TILE_WIDTH/2;
-        const posY = (x+y)*TILE_HEIGHT/2;
-        
-        this.ctx2d.drawImage(this.imgMapTileset, 
-            tileX, tileY, TILE_WIDTH, TILE_HEIGHT, 
-            posX - (TILE_WIDTH/2), posY, TILE_WIDTH, TILE_HEIGHT);
-    }
-
-    getGridCoordinate(clicX, clicY) {
-        const cX = clicX / (TILE_WIDTH/2);
-        const cY = clicY / (TILE_HEIGHT/2);
-
-        const x = (cX + cY)/2;
-        const y = (cY - cX)/2;
-
-        return {
-            x: Math.floor(x),
-            y: Math.floor(y)
-        };
-    }
-
-    extractTilesFromTileset() {
-        let tileList = [];
-
-        const cols = Math.floor(this.imgMapTileset.width / TILE_WIDTH);
-        const rows = Math.floor(this.imgMapTileset.height / TILE_HEIGHT);
-
-        const canvas = document.createElement('canvas');
-        canvas.width = TILE_WIDTH;
-        canvas.height = TILE_HEIGHT;
-        const ctx = canvas.getContext('2d');
-
-        for (let y = 0; y < rows; y++) {
-            for (let x = 0; x < cols; x++) {
-                ctx.clearRect(0, 0, TILE_WIDTH, TILE_HEIGHT);
-                ctx.drawImage(
-                    this.imgMapTileset,
-                    x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, 
-                    0, 0, TILE_WIDTH, TILE_HEIGHT                              
-                );
-                const dataUrl = canvas.toDataURL('image/png');
-                tileList.push(new mapTile("TILE", x, y, dataUrl));
-            }
-        }
-
-        return tileList;
-    }
-
-    getTileByName(tileName) {
-        return this.tileList.find((tile) => tile.name==tileName);
-    }
-}
-
-const imgTiles = new Image();
-imgTiles.src = sheet;
-imgTiles.onload = () => start();
-
-const imgGrid = new Image();
-imgGrid.src = grid;
-imgGrid.onload = () => start();
+const tilesImageSources = [ 
+    new TilesImageConfig('SHEET', sheet), 
+    new TilesImageConfig('GRID', grid)
+];
 
 window.selectTile = (img) => {
     window.selectedTileName = img.dataset.name;
 }
 
-const start = () => {
-    if(imgTiles.complete && imgGrid.complete) {
-
-        window.currentMap = new customMap(20, 20, imgTiles.src); 
-
-        const canvas = document.querySelector('#canvasMap');
-        const ctx = canvas.getContext("2d");
-        
-        const serviceGrid = new mapRenderService(ctx, imgGrid);
-
-        // init grid
-        let cptX, cptY = 0;
-        for (cptX = -10; cptX<=10; cptX++) {
-            for (cptY = -10; cptY<=10; cptY++) {
-                serviceGrid.drawTile(cptX,cptY,"TILE:0:0");
-            }            
-        }
-
-        // clic on grid
-        canvas.addEventListener("click", (event) => {
-            const newPos = serviceGrid.getGridCoordinate(event.offsetX, event.offsetY);
-            if (!window.selectedTileName) {
-                if (canvas.lastPos) serviceGrid.drawTile(canvas.lastPos.x,canvas.lastPos.y,"TILE:0:0");
-                serviceGrid.drawTile(newPos.x,newPos.y,"TILE:1:0");
-            }
-            else {
-                serviceTiles.drawTile(newPos.x, newPos.y, window.selectedTileName);
-                window.currentMap.addTileToMap(newPos.x, newPos.y, serviceTiles.getTileByName(window.selectedTileName));
-            }
-            canvas.lastPos = newPos;
-        });
-
-        // get tiles and init selection controle
-        const serviceTiles = new mapRenderService(ctx, imgTiles);
-
-        // update tile list for selection 
-        const divTilesList = document.querySelector('#divTilesList');
-        let html = "";
-        let cptCol = 0;
-        html += "<table>";
-        html += "<tr>";
-        serviceTiles.tileList.forEach((tile) => {
-            html += "<td>";
-            html += "<img src='" + tile.url + "' onclick='selectTile(this)' data-name='" + tile.name + "'></img>";
-            html += "</td>";
-            cptCol++;
-            if (cptCol==5) {
-                html += "</tr>";
-                html += "<tr>";
-                cptCol = 0;
-            }
-        });
-        html += "</tr>";
-        html += "</table>";
-        divTilesList.innerHTML = html;
-        divTilesList.style.height = "300px";
-        divTilesList.style.width = "700px";
-        divTilesList.style["overflow-y"] = "scroll";
+window.executeAction = (code) => {
+    console.log(code);
+    switch(code) {
+        case "ArrowRight":
+            window.serviceMap.viewport.x +=1;
+            window.serviceMap.renderMap(window.currentMap);
+            break;
+        case "ArrowLeft":
+            window.serviceMap.viewport.x -=1;
+            window.serviceMap.renderMap(window.currentMap);
+            break;
+        case "ArrowUp":
+            window.serviceMap.viewport.y -=1;
+            window.serviceMap.renderMap(window.currentMap);
+            break;
+        case "ArrowDown":
+            window.serviceMap.viewport.y +=1;
+            window.serviceMap.renderMap(window.currentMap);
+            break;
+        case "Enter":
+            console.log("ENTER");
+            break;
+        case "SaveMap":
+            if (window.currentMap.loaded) {
+                window.currentMap.saveMap();
+            } 
+            break;
+        case "LoadMap":
+                window.currentMap.loadMap();
+                window.serviceMap.renderMap(window.currentMap);
+                window.currentMap.loaded = true;
+            break;
     }
 }
+
+new TilesetService().loadTilesImages(tilesImageSources, (serviceTiles) => {
+
+    const canvas = document.querySelector('#canvasMap');
+    const ctx = canvas.getContext("2d");
+    window.serviceMap = new MapRenderService(ctx, serviceTiles, new MapViewport(5,5,10,10));
+
+    // init and display empty map 
+    window.currentMap = new CustomMap(50,50);
+    for (let cptX = 0; cptX<=50; cptX++) {
+        for (let cptY = 0; cptY<=50; cptY++) {
+            window.currentMap.addTileToMap(cptX, cptY, "GRID:0:0");
+        }
+    }
+    window.serviceMap.renderMap(window.currentMap);
+
+    // clic on map
+    canvas.addEventListener("click", (event) => {
+        if (window.selectedTileName) {
+            const mapClicCoordinates = window.serviceMap.getMapCoordinate(event.offsetX, event.offsetY);
+            window.currentMap.addTileToMap(mapClicCoordinates.x, mapClicCoordinates.y, window.selectedTileName);
+            window.serviceMap.renderMap(window.currentMap);
+        }
+    });
+
+    window.addEventListener("keydown", (event) => {
+        window.executeAction(event.code);
+    });
+
+    // update tile list for selection 
+    const divTilesList = document.querySelector('#divTilesList');
+    let html = "";
+    let cptCol = 0;
+    html += "<span>SHEET</span>";
+    html += "<table>";
+    html += "<tr>";
+    serviceTiles.getTilesList('SHEET').forEach((tile) => {
+        html += "<td>";
+        html += "<img src='" + tile.url + "' onclick='selectTile(this)' data-name='" + tile.name + "'></img>";
+        html += "</td>";
+        cptCol++;
+        if (cptCol==3) {
+            html += "</tr>";
+            html += "<tr>";
+            cptCol = 0;
+        }
+    });
+    html += "</tr>";
+    html += "</table>";
+    divTilesList.innerHTML = html;
+
+    const divActions = document.querySelector('#divActions');
+    html = "";
+    html += "<button class='btnAction' onclick='window.executeAction(\"LoadMap\")'>&#128229;</button>";
+    html += "<button class='btnAction' onclick='window.executeAction(\"ArrowUp\")'>&#129033;</button>";
+    html += "<button class='btnAction' onclick='window.executeAction(\"SaveMap\")'>&#128228;</button><br/>";
+    html += "<button class='btnAction' onclick='window.executeAction(\"ArrowLeft\")'>&#129032;</button>";
+    html += "<button class='btnAction' onclick='window.executeAction(\"ArrowDown\")'>&#129035;</button>";
+    html += "<button class='btnAction' onclick='window.executeAction(\"ArrowRight\")'>&#129034;</button><br/>";
+    divActions.innerHTML = html;
+});
+
+
 
 
 

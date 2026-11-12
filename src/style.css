@@ -1,0 +1,24 @@
+#divTilesList {
+    height : 640px;
+    width : 450px;
+    position : absolute;
+    left : 810px;
+    top : -20px;
+    overflow-y : scroll;
+    background-color : white;
+    border-style : solid;
+    border-color : grey;
+}
+
+#divActions {
+    position: absolute;
+    left: 690px;
+    top: 15px;
+}
+
+.btnAction {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 2px;
+    margin-right: 2px;
+}

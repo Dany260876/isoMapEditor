@@ -3,38 +3,48 @@ import MapViewport from './class/MapViewport.js'
 import TilesImageConfig from './class/TilesImageConfig.js'
 import TilesetService from './service/TilesetService.js';
 import MapRenderService from './service/MapRenderService.js'
+import HtmlService from './service/HtmlService.js'
 
 import './style.css';
-import sheet from './assets/sheet.png';
+import sheet from './assets/tiles1.png';
+import sheet2 from './assets/tiles2.png';
+import sheet3 from './assets/tiles3.png';
+import sheet4 from './assets/tiles4.png';
 import grid from './assets/grid.png';
 
 const tilesImageSources = [ 
     new TilesImageConfig('SHEET', sheet), 
+    new TilesImageConfig('SHEET2', sheet2), 
+    new TilesImageConfig('SHEET3', sheet3), 
+    new TilesImageConfig('SHEET4', sheet4), 
     new TilesImageConfig('GRID', grid)
 ];
 
 window.selectTile = (img) => {
     window.selectedTileName = img.dataset.name;
-}
+};
+
+window.toggleVisible = (name) => {
+    document.querySelectorAll(".tblTileList").forEach((e) => {
+        e.setAttribute('hidden', true);
+    });
+    document.querySelector("#" + name).removeAttribute('hidden');
+};
 
 window.executeAction = (code) => {
     console.log(code);
     switch(code) {
         case "ArrowRight":
             window.serviceMap.viewport.x +=1;
-            window.serviceMap.renderMap(window.currentMap);
             break;
         case "ArrowLeft":
             window.serviceMap.viewport.x -=1;
-            window.serviceMap.renderMap(window.currentMap);
             break;
         case "ArrowUp":
             window.serviceMap.viewport.y -=1;
-            window.serviceMap.renderMap(window.currentMap);
             break;
         case "ArrowDown":
             window.serviceMap.viewport.y +=1;
-            window.serviceMap.renderMap(window.currentMap);
             break;
         case "Enter":
             console.log("ENTER");
@@ -46,17 +56,17 @@ window.executeAction = (code) => {
             break;
         case "LoadMap":
                 window.currentMap.loadMap();
-                window.serviceMap.renderMap(window.currentMap);
                 window.currentMap.loaded = true;
             break;
     }
+    window.serviceMap.renderMap(window.currentMap);
 }
 
 new TilesetService().loadTilesImages(tilesImageSources, (serviceTiles) => {
 
     const canvas = document.querySelector('#canvasMap');
     const ctx = canvas.getContext("2d");
-    window.serviceMap = new MapRenderService(ctx, serviceTiles, new MapViewport(5,5,10,10));
+    window.serviceMap = new MapRenderService(ctx, serviceTiles, new MapViewport(5,5,20,20));
 
     // init and display empty map 
     window.currentMap = new CustomMap(50,50);
@@ -83,34 +93,38 @@ new TilesetService().loadTilesImages(tilesImageSources, (serviceTiles) => {
     // update tile list for selection 
     const divTilesList = document.querySelector('#divTilesList');
     let html = "";
-    let cptCol = 0;
-    html += "<span>SHEET</span>";
-    html += "<table>";
-    html += "<tr>";
-    serviceTiles.getTilesList('SHEET').forEach((tile) => {
-        html += "<td>";
-        html += "<img src='" + tile.url + "' onclick='selectTile(this)' data-name='" + tile.name + "'></img>";
-        html += "</td>";
-        cptCol++;
-        if (cptCol==3) {
-            html += "</tr>";
-            html += "<tr>";
-            cptCol = 0;
+    html += "<span class='spanTabMenu' data-target='tblTile_SHEET'>SHEET</span>";
+    html += "<span class='spanTabMenu' data-target='tblTile_SHEET2'>SHEET2</span>";
+    html += "<span class='spanTabMenu' data-target='tblTile_SHEET3'>SHEET3</span>";
+    html += "<span class='spanTabMenu' data-target='tblTile_SHEET4'>SHEET4</span>";
+    divTilesList.innerHTML = html;
+    divTilesList.innerHTML += HtmlService.renderTileListHtml("SHEET", serviceTiles);
+    divTilesList.innerHTML += HtmlService.renderTileListHtml("SHEET2", serviceTiles);
+    divTilesList.innerHTML += HtmlService.renderTileListHtml("SHEET3", serviceTiles);
+    divTilesList.innerHTML += HtmlService.renderTileListHtml("SHEET4", serviceTiles);
+    window.toggleVisible("tblTile_SHEET");
+
+    document.querySelectorAll(".spanTabMenu").forEach((elt) => {
+        elt.onclick = (e) => {
+            window.toggleVisible(e.srcElement.dataset['target']);
         }
     });
-    html += "</tr>";
-    html += "</table>";
-    divTilesList.innerHTML = html;
-
+    
     const divActions = document.querySelector('#divActions');
     html = "";
-    html += "<button class='btnAction' onclick='window.executeAction(\"LoadMap\")'>&#128229;</button>";
-    html += "<button class='btnAction' onclick='window.executeAction(\"ArrowUp\")'>&#129033;</button>";
-    html += "<button class='btnAction' onclick='window.executeAction(\"SaveMap\")'>&#128228;</button><br/>";
-    html += "<button class='btnAction' onclick='window.executeAction(\"ArrowLeft\")'>&#129032;</button>";
-    html += "<button class='btnAction' onclick='window.executeAction(\"ArrowDown\")'>&#129035;</button>";
-    html += "<button class='btnAction' onclick='window.executeAction(\"ArrowRight\")'>&#129034;</button><br/>";
+    html += "<button class='btnAction' data-action='LoadMap'>&#128229;</button>";
+    html += "<button class='btnAction' data-action='ArrowUp'>&#129033;</button>";
+    html += "<button class='btnAction' data-action='SaveMap'>&#128190;</button><br/>";
+    html += "<button class='btnAction' data-action='ArrowLeft'>&#129032;</button>";
+    html += "<button class='btnAction' data-action='ArrowDown'>&#129035;</button>";
+    html += "<button class='btnAction' data-action='ArrowRight'>&#129034;</button><br/>";
     divActions.innerHTML = html;
+
+    document.querySelectorAll(".btnAction").forEach((elt) => {
+        elt.onclick = (e) => {
+            window.executeAction(e.srcElement.dataset['action']);
+        }
+    });
 });
 
 

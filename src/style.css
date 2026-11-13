@@ -21,4 +21,25 @@
     height: 30px;
     margin-bottom: 2px;
     margin-right: 2px;
+    cursor: pointer;
+}
+
+.spanTabMenu {
+    font-size: large;
+    font-family: monospace;
+    margin-right: 10px;
+    cursor: pointer;
+    font-weight: bolder;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-right-color: grey;
+    padding-right: 10px;
+    padding-left: 5px;
+}
+
+.tblTileList {
+    margin-top: 10px;
+    border-top-style: solid;
+    border-top-width: 1px;
+    border-top-color: lightgrey;
 }
